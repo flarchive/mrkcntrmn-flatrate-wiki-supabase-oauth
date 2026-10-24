@@ -2,13 +2,24 @@
 
 > **Read-only archive of released versions of flatrate/wiki-supabase-oauth.** Not for installation: use [Packagist](https://packagist.org/packages/flatrate/wiki-supabase-oauth) or the [upstream repository](https://github.com/mrkcntrmn/flatrate-wiki-supabase-oauth).
 
-**0** versions archived · Latest: [`v2.0.0-RC1`](https://github.com/flarchive/mrkcntrmn-flatrate-wiki-supabase-oauth/tree/archive/v2.0.0-RC1) · License: `MIT` · Flarum: `2.0.2`
+**11** versions archived · Latest: [`v2.0.0-RC1`](https://github.com/flarchive/mrkcntrmn-flatrate-wiki-supabase-oauth/tree/archive/v2.0.0-RC1) (stable: [`v0.2.0`](https://github.com/flarchive/mrkcntrmn-flatrate-wiki-supabase-oauth/tree/archive/v0.2.0)) · License: `MIT` · Flarum: `2.0.2`
 
 ## Archived Versions
 
 | Version | Released | Flarum | Source |
 |---|---|---|---|
-| — | — | — | — |
+| `v0.2.0` | 2026-08-27 | `^1.8.1` | [Browse](https://github.com/flarchive/mrkcntrmn-flatrate-wiki-supabase-oauth/tree/archive/v0.2.0) |
+| `v0.2.1` | 2026-08-27 | `^1.8.1` | [Browse](https://github.com/flarchive/mrkcntrmn-flatrate-wiki-supabase-oauth/tree/archive/v0.2.1) |
+| `v0.2.2` | 2026-08-27 | `^1.8.1` | [Browse](https://github.com/flarchive/mrkcntrmn-flatrate-wiki-supabase-oauth/tree/archive/v0.2.2) |
+| `v0.2.3` | 2026-08-28 | `^1.8.1` | [Browse](https://github.com/flarchive/mrkcntrmn-flatrate-wiki-supabase-oauth/tree/archive/v0.2.3) |
+| `v0.2.4` | 2026-08-28 | `^1.8.1` | [Browse](https://github.com/flarchive/mrkcntrmn-flatrate-wiki-supabase-oauth/tree/archive/v0.2.4) |
+| `v0.2.5` | 2026-08-28 | `^1.8.1` | [Browse](https://github.com/flarchive/mrkcntrmn-flatrate-wiki-supabase-oauth/tree/archive/v0.2.5) |
+| `v0.2.6` | 2026-08-28 | `^1.8.1` | [Browse](https://github.com/flarchive/mrkcntrmn-flatrate-wiki-supabase-oauth/tree/archive/v0.2.6) |
+| `v0.2.7` | 2026-08-29 | `^1.8.1` | [Browse](https://github.com/flarchive/mrkcntrmn-flatrate-wiki-supabase-oauth/tree/archive/v0.2.7) |
+| `v0.2.8` | 2026-08-30 | `^1.8.1` | [Browse](https://github.com/flarchive/mrkcntrmn-flatrate-wiki-supabase-oauth/tree/archive/v0.2.8) |
+| `v0.3.0` | 2026-09-27 | `^1.8.19` | [Browse](https://github.com/flarchive/mrkcntrmn-flatrate-wiki-supabase-oauth/tree/archive/v0.3.0) |
+
+[View all 11 versions](https://github.com/flarchive/mrkcntrmn-flatrate-wiki-supabase-oauth/tags)
 
 Catalog entry: [packages/mrkcntrmn-flatrate-wiki-supabase-oauth.json](https://github.com/flarchive/archive-index/blob/main/packages/mrkcntrmn-flatrate-wiki-supabase-oauth.json)
 
