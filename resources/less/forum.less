@@ -1,0 +1,730 @@
+// FlatRate Wiki is the only public authentication authority for the forum.
+// Keep the FoF OAuth provider button visible, but remove Flarum's native
+// username/password controls and public signup affordances.
+
+.LogInModal {
+  .Form,
+  .Modal-footer {
+    display: none !important;
+  }
+
+  .LogInButtons {
+    width: calc(100% - 32px);
+    max-width: 420px;
+    margin: 0 auto;
+  }
+
+  .LogInButtonContainer:not(.LogInButtonContainer--flatrate) {
+    display: none !important;
+  }
+
+  .LogInButtonContainer--flatrate {
+    width: 100%;
+    margin: 0;
+  }
+
+  .LogInButtonContainer--flatrate .Button {
+    width: 100%;
+    min-height: 54px;
+    padding: 14px 20px;
+    gap: 10px;
+    border: 1px solid #0f172a;
+    border-radius: 12px;
+    background: #0f172a;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.25;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+    transition: background-color 120ms ease, border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+  }
+
+  .LogInButtonContainer--flatrate .Button:hover,
+  .LogInButtonContainer--flatrate .Button:focus-visible {
+    background: #1e293b;
+    border-color: #1e293b;
+    color: #ffffff;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.24);
+    text-decoration: none;
+  }
+
+  .LogInButtonContainer--flatrate .Button:active {
+    background: #020617;
+    border-color: #020617;
+    transform: translateY(1px);
+  }
+
+  .LogInButtonContainer--flatrate .Button-icon {
+    flex: 0 0 auto;
+    margin: 0;
+    font-size: 18px;
+  }
+
+  // Flarum's block-button defaults ellipsize Button-labelText. This provider
+  // is the only login path, so the full brand/action must always remain visible.
+  .LogInButtonContainer--flatrate .Button-label,
+  .LogInButtonContainer--flatrate .Button-labelText {
+    min-width: 0;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .LogInButtonContainer--flatrate .Button-labelText {
+    text-align: center;
+  }
+}
+
+@media (max-width: 767px) {
+  .LogInModal {
+    .Modal-body {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+
+    .LogInButtons {
+      width: 100%;
+      max-width: none;
+    }
+
+    .LogInButtonContainer--flatrate .Button {
+      min-height: 56px;
+      padding-left: 18px;
+      padding-right: 18px;
+      font-size: 16px;
+    }
+  }
+}
+
+// OAuth registration still uses Flarum's SignUpModal when a valid provider
+// registration token is present. We only remove the public/manual signup entry.
+.item-signUp {
+  display: none !important;
+}
+
+// Password and email credentials are managed by FlatRate.wiki / Supabase, not
+// by the local forum account. Flarum Nicknames adds Change Nickname here when
+// the member permission and nickname display driver are active.
+.SettingsPage {
+  .item-changePassword,
+  .item-changeEmail {
+    display: none !important;
+  }
+}
+
+.FlatRateReplyJobBreakdownToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  margin: 0 8px 0 0;
+  color: @muted-color;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+
+  input {
+    flex: 0 0 auto;
+    margin: 0;
+  }
+
+  span {
+    white-space: nowrap;
+  }
+}
+
+// Keep the reply-level Job Breakdown TagLabel visually separate from the
+// author/date cluster. Flarum renders header items as list items, so floating
+// only our marker item preserves the native username + post date layout while
+// anchoring the existing Job Breakdown tag badge to the far right.
+.Post-header > ul > .item-flatrateJobBreakdownTag {
+  float: right;
+  margin-right: 0;
+  margin-left: 10px;
+}
+
+// Affiliated brand stacks beneath the nickname while avatar, online dot, and post
+// time keep Flarum's native inline header flow.
+.PostUser .FlatRatePostUserIdentityStack {
+  display: inline-grid;
+  grid-template-rows: auto auto;
+  row-gap: 2px;
+  align-items: start;
+  vertical-align: top;
+}
+
+.PostUser .FlatRatePostUserIdentityStack .username {
+  grid-row: 1;
+}
+
+.PostUser .FlatRateAffiliatedBrand {
+  grid-row: 2;
+  display: block;
+  margin: 0;
+  color: @muted-color;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+// Keep post time on row 1 beside the nickname when the author block grows.
+.Post-header > ul:has(.FlatRateAffiliatedBrand) > .item-user,
+.Post-header > ul:has(.FlatRateAffiliatedBrand) > .item-meta {
+  vertical-align: top;
+}
+
+.PostUser:has(.FlatRateAffiliatedBrand) {
+  display: inline-block;
+  vertical-align: top;
+}
+
+// Flarum moves the normal index title/new-discussion controls into the phone
+// header. Desktop sidebar owns the shared forum navigation groups; phones use
+// the HeaderSecondary drawer implementation instead.
+.FlatRateForumNav--sidebar,
+.IndexPage-nav > ul > .item-flatrateForumNavigation,
+.FlatRateMobileBrandSidebar,
+.IndexPage-nav > ul > .item-flatrateMobileBrandLinks {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .IndexPage-nav > ul > .item-flatrateForumNavigation {
+    display: block;
+    width: 100%;
+    margin: 6px 0 0;
+    white-space: normal;
+  }
+
+  .FlatRateForumNav--sidebar {
+    display: block;
+    width: 100%;
+    padding: 8px 0 2px;
+  }
+
+  .FlatRateForumNav--sidebar .FlatRateForumNav-group {
+    margin: 0 0 14px;
+  }
+
+  .FlatRateForumNav--sidebar .FlatRateForumNav-groupTitle {
+    margin: 0 0 6px;
+    color: @muted-color;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
+    text-transform: uppercase;
+  }
+
+  .FlatRateForumNav--sidebar .FlatRateForumNav-links,
+  .FlatRateForumNav--sidebar .FlatRateForumNav-children {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .FlatRateForumNav--sidebar .FlatRateForumNav-item {
+    margin: 0;
+    padding: 0;
+  }
+
+  .FlatRateForumNav--sidebar .FlatRateForumNav-link.Button {
+    display: block;
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: @text-color;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 20px;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .FlatRateForumNav--sidebar .FlatRateForumNav-link--child.Button {
+    padding-left: 24px;
+    color: @muted-color;
+    font-size: 12px;
+  }
+
+  .FlatRateForumNav--sidebar .FlatRateForumNav-link.Button:hover,
+  .FlatRateForumNav--sidebar .FlatRateForumNav-link.Button:focus-visible {
+    background: @control-bg;
+    color: @primary-color;
+    text-decoration: none;
+  }
+
+  .FlatRateForumNav--sidebar .FlatRateForumNav-link.Button.active {
+    background: @control-bg;
+    color: @primary-color;
+    font-weight: 700;
+  }
+}
+
+// FlatRate uses one familiar reputation action: thumbs up. Keep the CSS
+// fallback in case FoF settings arrive after the frontend initializer.
+.CommentPost-votes .Post-downvote,
+.Post-votes .Post-voteButton--down,
+.DiscussionListItem-voteButton--down {
+  display: none !important;
+}
+
+// FoF DOM is [upvote][count]; FlatRate presents count left, thumb right.
+.CommentPost-votes,
+.Post-votes.alternateLayout,
+.DiscussionListItem-votes.alternateLayout {
+  position: static !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start;
+  gap: 0.35em;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  line-height: 1;
+  white-space: nowrap;
+
+  .Post-upvote,
+  .Post-vote,
+  .Post-voteButton--up,
+  .Post-voteButton--down,
+  .DiscussionListItem-voteButton--up {
+    order: 2;
+    margin: 0 !important;
+    vertical-align: middle;
+  }
+
+  .Post-points,
+  .Post-voteCount,
+  .DiscussionListItem-voteCount {
+    order: 1;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    line-height: 1;
+    bottom: auto !important;
+    left: auto !important;
+    right: auto !important;
+    top: auto !important;
+  }
+}
+
+// Post footer/actions (CommentPost):
+//   controls -> right side of username/time header row
+//   Row 1 -> replied indicator left | vote count + thumb right
+//   Row 2 -> Reply centered beneath the inline row
+.CommentPost:not(.editing):not(.Post--hidden) {
+  position: relative;
+
+  .Post-main {
+    position: relative;
+  }
+
+  .Post-header {
+    padding-right: 2.75rem;
+  }
+
+  .Post-actions {
+    float: none !important;
+    position: static !important;
+    width: 100% !important;
+    clear: both;
+    margin-top: 0.5rem;
+    text-align: left !important;
+
+    > ul {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      grid-template-rows: minmax(2rem, auto) minmax(2rem, auto);
+      align-items: center !important;
+      width: 100%;
+      position: static !important;
+      min-height: 4rem;
+      row-gap: 0.1rem;
+      column-gap: 0;
+
+      > li {
+        display: flex !important;
+        align-items: center !important;
+        float: none !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        vertical-align: middle;
+      }
+
+      > .item-flatRateReplied {
+        grid-column: 1;
+        grid-row: 1;
+        justify-self: start;
+        justify-content: flex-start;
+        min-width: 0;
+        max-width: 100%;
+        overflow: hidden;
+      }
+
+      > .item-votes {
+        grid-column: 3;
+        grid-row: 1;
+        justify-self: end;
+        justify-content: flex-end;
+        min-width: 0;
+      }
+
+      > .item-reply {
+        grid-column: 2;
+        grid-row: 2;
+        justify-self: center;
+        justify-content: center;
+        min-width: 0;
+      }
+
+      > li:has(> .Post-controls) {
+        position: absolute;
+        right: 0;
+        z-index: 3;
+        top: 18px;
+
+        @media @tablet-up {
+          top: 12px;
+        }
+      }
+    }
+
+    .CommentPost-votes {
+      display: inline-flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+    }
+  }
+
+  .item-flatRateReplied .Post-mentionedBy-summary {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// Vote chrome states (classes set by plain-voting.js from FoF model state):
+//   zero upvotes  -> white thumb; zero count is hidden on replies
+//   has upvotes   -> white thumb, lime count
+//   viewer voted -> pink thumb/count
+@flatrate-vote-zero: #ffffff;
+@flatrate-vote-has: #84cc16;
+@flatrate-vote-mine: #c72d5d;
+
+
+.FlatRateVotes--zero {
+  .Post-upvote,
+  .Post-upvote .Button-icon,
+  .Post-points,
+  .Post-voteButton--up,
+  .Post-voteButton--up .Button-icon,
+  .Post-voteCount,
+  .DiscussionListItem-voteButton--up,
+  .DiscussionListItem-voteButton--up .Button-icon,
+  .DiscussionListItem-voteCount {
+    color: @flatrate-vote-zero !important;
+  }
+}
+
+// Board discussion-list rows use the FlatRate whole-discussion aggregate as
+// read-only title metadata. The original FoF alternate vote widget is hidden;
+// a positive total is projected beside the discussion title by plain-voting.js.
+// Real zero totals are intentionally omitted from presentation.
+.DiscussionListItem-votes.FlatRateVotes--discussionAggregate {
+  display: none !important;
+}
+
+.DiscussionListItem-title .FlatRateDiscussionListTotal {
+  display: inline-block;
+  margin-left: 0.5rem;
+  color: @flatrate-vote-has !important;
+  font-size: 0.82em;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  vertical-align: baseline;
+  white-space: nowrap;
+}
+
+// Keep the reply action compact: a reply with no endorsements shows only the
+// actionable thumb. The first post and any nonzero reply retain their count.
+.CommentPost-votes.FlatRateVotes--zero.FlatRateVotes--reply {
+  .Post-points,
+  .Post-voteCount {
+    display: none !important;
+  }
+}
+
+.FlatRateVotes--hasVotes:not(.FlatRateVotes--mine) {
+  .Post-upvote,
+  .Post-upvote .Button-icon,
+  .Post-voteButton--up,
+  .Post-voteButton--up .Button-icon,
+  .DiscussionListItem-voteButton--up,
+  .DiscussionListItem-voteButton--up .Button-icon {
+    color: @flatrate-vote-zero !important;
+  }
+
+  .Post-points,
+  .Post-voteCount,
+  .DiscussionListItem-voteCount {
+    color: @flatrate-vote-has !important;
+  }
+}
+
+.FlatRateVotes--mine {
+  .Post-upvote,
+  .Post-upvote .Button-icon,
+  .Post-points,
+  .Post-voteButton--up,
+  .Post-voteButton--up .Button-icon,
+  .Post-voteCount,
+  .DiscussionListItem-voteButton--up,
+  .DiscussionListItem-voteButton--up .Button-icon,
+  .DiscussionListItem-voteCount {
+    color: @flatrate-vote-mine !important;
+  }
+
+  .Post-upvote:hover,
+  .Post-upvote:focus-visible,
+  .Post-upvote:hover .Button-icon,
+  .Post-upvote:focus-visible .Button-icon,
+  .Post-voteButton--up:hover,
+  .Post-voteButton--up:focus-visible,
+  .Post-voteButton--up:hover .Button-icon,
+  .Post-voteButton--up:focus-visible .Button-icon {
+    color: @flatrate-vote-mine !important;
+  }
+}
+
+// Discussion-level aggregate opposite Following (SubscriptionMenu).
+// Count-only presentation: inactive = lime; active (viewer has any ballot in discussion) = pink.
+.DiscussionPage-nav > ul {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  > .item-flatRateDiscussionVote {
+    margin-right: auto;
+  }
+}
+
+.FlatRateDiscussionVote {
+  display: inline-flex !important;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0;
+  white-space: nowrap;
+  line-height: 1;
+  min-height: 36px;
+  padding: 6px 10px;
+  font-weight: 700;
+
+  .FlatRateDiscussionVote-count {
+    order: 1;
+    margin: 0;
+    padding: 0;
+    line-height: 1;
+  }
+  &.FlatRateDiscussionVote--available {
+    color: @flatrate-vote-has !important;
+  }
+
+  &.FlatRateDiscussionVote--available .FlatRateDiscussionVote-count {
+    color: @flatrate-vote-has !important;
+  }
+  &.FlatRateDiscussionVote--mine,
+  &.FlatRateDiscussionVote--mine .FlatRateDiscussionVote-count {
+    color: @flatrate-vote-mine !important;
+  }
+
+  &:disabled {
+    opacity: 1;
+    cursor: default;
+  }
+}
+
+.FlatRateMemberDisplay {
+  margin: 24px 0;
+  padding: 16px 0;
+  border-top: 1px solid @control-bg;
+}
+
+.FlatRateMemberDisplay-heading {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.FlatRateMemberDisplay-number {
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+
+.FlatRateMemberDisplay-help,
+.FlatRateMemberDisplay-choose,
+.FlatRateMemberDisplay-permanence {
+  margin: 0 0 12px;
+  color: @muted-color;
+}
+
+.FlatRateMemberDisplay-option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid @control-bg;
+  border-radius: 8px;
+}
+
+.FlatRateMemberDisplay-option--active {
+  border-color: @primary-color;
+}
+
+.FlatRateMemberDisplay-optionLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.FlatRateMemberDisplay-optionHelp {
+  color: @muted-color;
+  font-size: 13px;
+}
+
+.FlatRateMemberDisplay-customEditor {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
+.FlatRateMemberDisplay-error {
+  color: @alert-error-color;
+}
+
+.FlatRateMemberNumber {
+  font-weight: 700;
+}
+
+.FlatRateOwnerDashboard {
+  margin: 0 0 24px;
+  max-width: 100%;
+}
+
+.FlatRateOwnerDashboard-heading {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.FlatRateOwnerDashboard-help,
+.FlatRateOwnerDashboard-displayName {
+  margin: 0 0 12px;
+  color: @muted-color;
+}
+
+.FlatRateOwnerDashboard-memberNumber {
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+
+.FlatRateOwnerDashboard-cards {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+  margin: 0 0 24px;
+}
+
+.FlatRateOwnerDashboard-card {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid @control-bg;
+  border-radius: 8px;
+}
+
+.FlatRateOwnerDashboard-cardTitle {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.FlatRateOwnerDashboard-contributions {
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .FlatRateOwnerDashboard-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.FlatRateAdminGamify {
+  display: grid;
+  gap: 1rem;
+  padding: 0.5rem 0 1.5rem;
+}
+
+.FlatRateAdminGamify-heading {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.FlatRateAdminGamify-help,
+.FlatRateAdminGamify-freshness {
+  margin: 0.25rem 0 0;
+  color: var(--muted-color, #667);
+}
+
+.FlatRateAdminGamify-sources,
+.FlatRateAdminGamify-controls,
+.FlatRateAdminGamify-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+}
+
+.FlatRateAdminGamify-metrics {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.FlatRateAdminGamify-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.FlatRateAdminGamify-table th,
+.FlatRateAdminGamify-table td {
+  border-bottom: 1px solid var(--control-bg, #ddd);
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+@media (max-width: 767px) {
+  .FlatRateAdminGamify-table {
+    display: block;
+    overflow-x: auto;
+  }
+}

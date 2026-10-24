@@ -1,0 +1,88 @@
+# FORUM-IDENTITY-002-R2 MariaDB fixtures
+
+| Fixture | Upstream path | Provenance |
+|---|---|---|
+| `flarum-1.8.19-Migration.php` | `src/Database/Migration.php` | flarum/core 1.8.19, slimmed to `createTable` only |
+| `flarum-1.8.19-create-users-table.php` | `migrations/2015_02_24_000000_create_users_table.php` | flarum/core 1.8.19 |
+
+`Migration::createTable()` routes `$schema->create($name, ...)` so the active connection prefix is applied. Do not reintroduce raw `CREATE TABLE` / `REFERENCES users (id)` DDL.
+
+## PRODUCT-ACTIVITY-001 Activity outbox prefix rule
+
+Flarum extension migrations must use prefix-aware schema APIs.
+
+Raw `CREATE TABLE` with a logical Flarum table name is prohibited.
+
+Raw `information_schema` inspection must resolve the active physical table
+name through `getTablePrefix()`.
+
+Regression case: historical Activity migrations
+`2026_09_10_000000_create_activity_emitter_tables.php` and
+`2026_09_10_120000_activity_outbox_terminal_at.php` used literal unprefixed
+DDL while runtime `OutboxStore` uses the prefix-aware query builder. On
+hosts with `prefix=flarum_` (PikaPods / crazy-max default), the migration
+ledger can report applied while `flarum_flatrate_activity_outbox` is missing.
+Forward repair: `2026_09_16_000000_repair_activity_table_prefix.php`.
+Harness: `test/activity-outbox-mariadb-migration.php`.
+
+# FORUM-SUB-001 pinned upstream fixtures
+
+Exact APIs depended on for GM/CDJR family notification inheritance.
+
+## Flarum core 1.8.19
+
+| Fixture | Upstream path | Provenance |
+|---|---|---|
+| `flarum-1.8.19-NotificationSyncer.php` | `src/Notification/NotificationSyncer.php` | flarum/core 1.8.19 |
+| `flarum-1.8.19-Extend-Conditional.php` | `src/Extend/Conditional.php` | flarum/core 1.8.19 |
+| `flarum-1.8.19-NotificationServiceProvider.php` | `src/Notification/NotificationServiceProvider.php` | flarum/core 1.8.19 |
+
+Notes:
+- `NotificationSyncer::sync()` reconciles existing rows into `toDelete` /
+  `toUndelete` / `newRecipients` **before** invoking `beforeSending` callbacks.
+- `NotificationServiceProvider` does **not** bind `NotificationSyncer::class`.
+- `Extend\Conditional::whenExtensionEnabled()` and `whenExtensionDisabled()` are the supported conditional APIs.
+
+## FoF Follow Tags 1.3.0
+
+| Fixture | Upstream path |
+|---|---|
+| `fof-follow-tags-1.3.0/SendNotificationWhenDiscussionIsStarted.php` | `src/Jobs/SendNotificationWhenDiscussionIsStarted.php` |
+| `fof-follow-tags-1.3.0/SendNotificationWhenReplyIsPosted.php` | `src/Jobs/SendNotificationWhenReplyIsPosted.php` |
+| `fof-follow-tags-1.3.0/SendNotificationWhenDiscussionIsReTagged.php` | `src/Jobs/SendNotificationWhenDiscussionIsReTagged.php` |
+| `fof-follow-tags-1.3.0/NotificationJob.php` | `src/Jobs/NotificationJob.php` |
+| `fof-follow-tags-1.3.0/NewDiscussionBlueprint.php` | `src/Notifications/NewDiscussionBlueprint.php` |
+| `fof-follow-tags-1.3.0/NewPostBlueprint.php` | `src/Notifications/NewPostBlueprint.php` |
+| `fof-follow-tags-1.3.0/NewDiscussionTagBlueprint.php` | `src/Notifications/NewDiscussionTagBlueprint.php` |
+| `fof-follow-tags-1.3.0/PreventMentionNotificationsFromIgnoredTags.php` | `src/Listeners/PreventMentionNotificationsFromIgnoredTags.php` |
+| `fof-follow-tags-1.3.0/ChangeTagSubscription.php` | `src/Controllers/ChangeTagSubscription.php` |
+| `fof-follow-tags-1.3.0/FollowTagsFilter.php` | `src/Search/FollowTagsFilter.php` |
+| `fof-follow-tags-1.3.0/extend.php` | `extend.php` |
+
+Upstream repository: https://github.com/FriendsOfFlarum/follow-tags  
+Pinned version: `1.3.0`  
+Source checkout SHA used for fixtures: `b546d17e15dbcb091fa455e2ef8cc075bcb16f3d`
+
+Reply caught-up threshold (exact 1.3.0):
+
+```text
+discussion_user.last_read_post_number >= lastPostNumber - 1
+```
+
+where the reply job is constructed with `lastPostNumber = post.number - 1`.
+
+See `SHA256SUMS.txt` for per-file digests.
+
+# FORUM-UI-REG-002H navigation v1.1.0 manifest fixture
+
+Exact dedicated-navigation runtime manifest used only as a mobile-drawer
+enabled-state test fixture. Do not treat this copy as OAuth presentation
+authority.
+
+| Fixture | Upstream path | Provenance |
+|---|---|---|
+| `navigation-v1.1.0/navigation-runtime-manifest.json` | `resources/navigation-runtime-manifest.json` | `flatrate/flarum-forum-navigation` tag `v1.1.0` / commit `e57412070dc285d5b63e43d3fa9156617684a5ba` |
+
+```text
+FIXTURE_SHA256=f262df400d7f8c1070cb14978472c3b549843e7d2678bdd934e538baa9903c65
+```

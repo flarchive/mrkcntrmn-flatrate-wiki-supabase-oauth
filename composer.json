@@ -1,0 +1,40 @@
+{
+  "name": "flatrate/wiki-supabase-oauth",
+    "description": "Flarum 2.0.2 identity canary for FlatRate server-to-server provisioning and one-time tickets. This branch is not a complete port of the Flarum 1 extension.",
+    "type": "flarum-extension",
+  "license": "MIT",
+  "keywords": [
+    "flarum",
+    "supabase",
+    "oauth",
+    "oauth2",
+    "pkce",
+    "sso",
+    "nicknames"
+  ],
+  "homepage": "https://flatrate.wiki",
+  "support": {
+    "issues": "https://github.com/mrkcntrmn/flatrate-wiki-supabase-oauth/issues",
+    "source": "https://github.com/mrkcntrmn/flatrate-wiki-supabase-oauth"
+  },
+  "require": {
+    "php": ">=8.3",
+    "flarum/core": "2.0.2"
+  },
+  "autoload": {
+    "psr-4": {
+      "FlatRate\\SupabaseOAuth\\": "src/"
+    }
+  },
+  "extra": {
+    "flarum-extension": {
+      "title": "FlatRate Wiki Login F2 identity canary",
+      "category": "feature",
+      "icon": {
+        "name": "fas fa-sign-in-alt",
+        "backgroundColor": "#111827",
+        "color": "#ffffff"
+      }
+    }
+  }
+}

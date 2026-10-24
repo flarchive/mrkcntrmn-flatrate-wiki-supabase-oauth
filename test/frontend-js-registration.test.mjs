@@ -1,0 +1,394 @@
+#!/usr/bin/env node
+/**
+ * FORUM-SUB-000D — Flarum 1.8 Frontend::js() scalar-overwrite regression gates.
+ *
+ * Flarum 1.8 stores one JS path per Extend\Frontend instance. Chaining
+ * ->js() on a single extender overwrites prior paths; css() appends.
+ * Full require(extend.php) reflection is impractical here: this package CI
+ * does not install flarum/core or fof/oauth. We therefore:
+ *   1. Prove the Flarum 1.8.19 Frontend.php API from vendor or the pinned fixture
+ *   2. Structurally parse companion extend.php Frontend chains
+ */
+
+import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = join(__dirname, "..");
+const text = (rel) => readFileSync(join(ROOT, rel), "utf8");
+
+const EXPECTED_JS = [
+  "js/dist/forum-navigation.js",
+  "js/dist/forum.js",
+  "js/dist/mobile-brand-drawer.js",
+  "js/dist/member-display.js",
+  "js/dist/member-dashboard.js",
+  "js/dist/admin-gamification.js",
+  "js/dist/plain-voting.js",
+];
+
+function resolveFlarumFrontendSource() {
+  const vendor = join(ROOT, "vendor/flarum/core/src/Extend/Frontend.php");
+  const fixture = join(
+    ROOT,
+    "test/fixtures/flarum-1.8.19-Extend-Frontend.php",
+  );
+  if (existsSync(vendor)) {
+    return { path: vendor, source: "vendor" };
+  }
+  assert.ok(
+    existsSync(fixture),
+    "expected vendor/flarum/core/.../Frontend.php or pinned 1.8.19 fixture",
+  );
+  return { path: fixture, source: "fixture" };
+}
+
+/**
+ * Parse `(new Extend\Frontend(...))` chains from extend.php into
+ * { frontend, jsPaths[], cssPaths[] } records in source order.
+ */
+function withoutWhenExtensionDisabled(extendPhp) {
+  return extendPhp.replace(
+    /->whenExtensionDisabled\s*\(\s*'[^']+'\s*,\s*\[[\s\S]*?\]\s*\)/g,
+    "->whenExtensionDisabled('stripped', [])",
+  );
+}
+
+function parseWhenExtensionDisabled(extendPhp) {
+  const matches = [...extendPhp.matchAll(
+    /whenExtensionDisabled\s*\(\s*'([^']+)'\s*,\s*\[([\s\S]*?)\]\s*\)/g,
+  )];
+  return matches.map((m) => ({
+    extensionId: m[1],
+    body: m[2],
+    jsPaths: [...m[2].matchAll(/->js\s*\(\s*__DIR__\s*\.\s*['"]([^'"]+)['"]\s*\)/g)].map(
+      (x) => x[1].replace(/^\//, ""),
+    ),
+  }));
+}
+
+function parseFrontendExtenders(extendPhp) {
+  const records = [];
+  // Prefer the grouped form `(new Extend\Frontend(...))` used in extend.php.
+  const startRe = /\(\s*new\s+Extend\\Frontend\s*\(/g;
+  let match;
+  while ((match = startRe.exec(extendPhp)) !== null) {
+    const argsStart = match.index + match[0].length;
+    let i = argsStart;
+    let depth = 1;
+    while (i < extendPhp.length && depth > 0) {
+      const ch = extendPhp[i++];
+      if (ch === "(") depth++;
+      else if (ch === ")") depth--;
+    }
+    const ctorArgs = extendPhp.slice(argsStart, i - 1);
+    const frontendMatch = ctorArgs.match(/['"]([^'"]+)['"]/);
+    const frontend = frontendMatch ? frontendMatch[1] : null;
+
+    // Skip the closing `)` of the `(new ...)` grouping before method chains.
+    while (i < extendPhp.length && /\s/.test(extendPhp[i])) i++;
+    if (extendPhp[i] === ")") i++;
+
+    // Consume chained ->method(...) calls until comma/semicolon at depth 0.
+    const jsPaths = [];
+    const cssPaths = [];
+    depth = 0;
+    let j = i;
+    while (j < extendPhp.length) {
+      const ch = extendPhp[j];
+      if (ch === "(") depth++;
+      else if (ch === ")") depth--;
+      if (depth === 0 && (ch === "," || ch === ";")) break;
+      j++;
+    }
+    const chain = extendPhp.slice(i, j);
+
+    for (const m of chain.matchAll(
+      /->js\s*\(\s*__DIR__\s*\.\s*['"]([^'"]+)['"]\s*\)/g,
+    )) {
+      jsPaths.push(m[1].replace(/^\//, ""));
+    }
+    for (const m of chain.matchAll(
+      /->css\s*\(\s*__DIR__\s*\.\s*['"]([^'"]+)['"]\s*\)/g,
+    )) {
+      cssPaths.push(m[1].replace(/^\//, ""));
+    }
+
+    records.push({ frontend, jsPaths, cssPaths, chain });
+  }
+  return records;
+}
+
+test("Flarum 1.8.19 Frontend::js is a scalar overwrite; css appends", () => {
+  const { path, source } = resolveFlarumFrontendSource();
+  const api = readFileSync(path, "utf8");
+
+  assert.match(api, /private\s+\$css\s*=\s*\[\];/);
+  assert.match(api, /private\s+\$js;/);
+  assert.doesNotMatch(api, /private\s+\$js\s*=\s*\[/);
+
+  const cssMethod = api.match(
+    /public function css\(string \$path\): self\s*\{([\s\S]*?)\n    \}/,
+  );
+  const jsMethod = api.match(
+    /public function js\(string \$path\): self\s*\{([\s\S]*?)\n    \}/,
+  );
+  assert.ok(cssMethod, "css() method present");
+  assert.ok(jsMethod, "js() method present");
+  assert.match(cssMethod[1], /\$this->css\[\]\s*=\s*\$path;/);
+  assert.match(jsMethod[1], /\$this->js\s*=\s*\$path;/);
+  assert.doesNotMatch(jsMethod[1], /\$this->js\[\]\s*=/);
+
+  // Encode gates for the final packet / operators reading stderr.
+  console.error(`FLARUM_FRONTEND_SOURCE=${source}:${path}`);
+  console.error("FLARUM_FRONTEND_JS_PROPERTY_IS_SCALAR=true");
+  console.error("FLARUM_FRONTEND_JS_METHOD_OVERWRITES=true");
+  console.error("FLARUM_FRONTEND_CSS_METHOD_APPENDS=true");
+});
+
+test("companion registers seven forum JS paths via separate Frontend extenders", () => {
+  const extendPhp = withoutWhenExtensionDisabled(text("extend.php"));
+  const forum = parseFrontendExtenders(extendPhp).filter(
+    (r) => r.frontend === "forum" && r.jsPaths.length > 0,
+  );
+  const expected = EXPECTED_JS;
+
+  assert.equal(forum.length, 7, "expected seven forum Frontend JS extenders");
+
+  const registered = forum.map((r) => r.jsPaths.join(","));
+  assert.deepEqual(
+    registered,
+    expected,
+    `REGISTERED_FORUM_JS_PATHS=${expected.join(",")}`,
+  );
+
+  for (const ext of forum) {
+    assert.equal(
+      ext.jsPaths.length,
+      1,
+      `MAX_JS_CALLS_PER_FRONTEND_EXTENDER=1 violated: ${ext.jsPaths.join(",")}`,
+    );
+  }
+
+  const allJs = forum.flatMap((r) => r.jsPaths);
+  for (const path of expected) {
+    assert.equal(
+      allJs.filter((p) => p === path).length,
+      1,
+      `duplicate registration for ${path}`,
+    );
+  }
+
+  const nav = allJs.indexOf(expected[0]);
+  const forumJs = allJs.indexOf(expected[1]);
+  const drawer = allJs.indexOf(expected[2]);
+  const member = allJs.indexOf(expected[3]);
+  const dashboard = allJs.indexOf(expected[4]);
+  const adminGamify = allJs.indexOf(expected[5]);
+  const plainVoting = allJs.indexOf(expected[6]);
+  assert.ok(
+    nav < forumJs &&
+      forumJs < drawer &&
+      drawer < member &&
+      member < dashboard &&
+      dashboard < adminGamify &&
+      adminGamify < plainVoting,
+    "FRONTEND_JS_ORDER_GATE=PASS",
+  );
+
+  console.error(`REGISTERED_FORUM_JS_PATHS=${allJs.join(",")}`);
+  console.error("FRONTEND_JS_ORDER_GATE=PASS");
+  console.error("MAX_JS_CALLS_PER_FRONTEND_EXTENDER=1");
+});
+
+test("chained multi-js on one Frontend extender is detected as a violation", () => {
+  const broken = `
+return [
+    (new Extend\\Frontend('forum'))
+        ->js(__DIR__.'/js/dist/a.js')
+        ->js(__DIR__.'/js/dist/b.js'),
+];
+`;
+  const forum = parseFrontendExtenders(broken).filter(
+    (r) => r.frontend === "forum",
+  );
+  assert.equal(forum.length, 1);
+  assert.equal(
+    forum[0].jsPaths.length,
+    2,
+    "detector must see chained ->js() as >1 calls on one extender",
+  );
+  // The production gate in the companion test above requires length === 1.
+  assert.notEqual(forum[0].jsPaths.length, 1);
+});
+
+test("forum LESS paths register exactly once on the first JS extender", () => {
+  const extendPhp = withoutWhenExtensionDisabled(text("extend.php"));
+  const forum = parseFrontendExtenders(extendPhp).filter(
+    (r) => r.frontend === "forum",
+  );
+  const cssAll = forum.flatMap((r) => r.cssPaths);
+  assert.equal(
+    cssAll.filter((p) => p === "resources/less/forum.less").length,
+    1,
+  );
+  assert.equal(
+    cssAll.filter((p) => p === "resources/less/mobile-brand-drawer.less")
+      .length,
+    1,
+  );
+  // CSS should ride with the first JS extender (navigation), not be duplicated.
+  assert.deepEqual(forum[0].cssPaths, [
+    "resources/less/forum.less",
+    "resources/less/mobile-brand-drawer.less",
+  ]);
+  assert.deepEqual(forum[1].cssPaths, []);
+  assert.deepEqual(forum[2].cssPaths, []);
+  assert.deepEqual(forum[3].cssPaths, []);
+  assert.deepEqual(forum[4].cssPaths, []);
+});
+
+test("IA-013 JS source markers remain present and unchanged in role", () => {
+  const nav = text("js/dist/forum-navigation.js");
+  const forum = text("js/dist/forum.js");
+  const desktop = text("js/dist/forum-desktop-navigation.js");
+  const mobile = text("js/dist/mobile-brand-drawer.js");
+  const member = text("js/dist/member-display.js");
+  const dashboard = text("js/dist/member-dashboard.js");
+
+  assert.match(nav, /FlatRateForumNavigation/);
+  assert.match(nav, /root\.FlatRateForumNavigation\s*=/);
+
+  assert.doesNotMatch(forum, /flatrate-wiki-forum-navigation-sidebar/);
+  assert.doesNotMatch(forum, /FlatRateForumNav--sidebar/);
+  assert.match(
+    desktop,
+    /flatrate-wiki-forum-navigation-sidebar/,
+  );
+  assert.match(desktop, /flatrateForumNavigation/);
+  assert.match(desktop, /FlatRateForumNav--sidebar/);
+
+  assert.match(mobile, /FlatRateForumNavigation/);
+  assert.match(
+    mobile,
+    /flatrate-wiki-mobile-forum-navigation/,
+  );
+
+  assert.match(member, /flatrate-wiki-member-display/);
+  assert.match(member, /flatrate\/member-display/);
+  assert.match(member, /Community identity|member_number|flatRateMemberNumber/);
+  assert.match(member, /module\.exports = \{\}/);
+  assert.match(member, /coreExport\('common\/extend'\)/);
+  assert.match(member, /forum\/components\/SettingsPage/);
+  assert.match(member, /flarum\.core\.compat/);
+  assert.match(dashboard, /flatrate-wiki-member-dashboard/);
+  assert.match(dashboard, /flatRateOwnerDashboard/);
+  assert.match(dashboard, /module\.exports = \{\}/);
+
+  const plainVoting = text("js/dist/plain-voting.js");
+  assert.match(plainVoting, /flatrate-wiki-plain-voting/);
+  assert.match(plainVoting, /module\.exports = \{\}/);
+  assert.match(
+    plainVoting,
+    /app\.data\['fof-gamification\.upVotesOnly'\] = '1'/,
+  );
+  assert.match(
+    plainVoting,
+    /app\.data\['fof-gamification\.iconName'\] = 'thumbs'/,
+  );
+  assert.match(
+    plainVoting,
+    /app\.data\['fof-gamification\.altPostVotingUi'\] = '0'/,
+  );
+  assert.match(
+    plainVoting,
+    /flatrate-wiki-plain-voting-settings[\s\S]*?,\s*100\s*\)/,
+  );
+  assert.doesNotMatch(plainVoting, /thumbs-down/);
+  assert.doesNotMatch(plainVoting, /upVotesOnly'\] = '0'/);
+  assert.doesNotMatch(plainVoting, /altPostVotingUi'\] = '1'/);
+  assert.match(plainVoting, /FlatRateVotes--zero/);
+  assert.match(plainVoting, /FlatRateVotes--hasVotes/);
+  assert.match(plainVoting, /FlatRateVotes--mine/);
+  assert.match(plainVoting, /FlatRateVotes--reply/);
+  assert.match(plainVoting, /FlatRateDiscussionVote/);
+  assert.doesNotMatch(plainVoting, /icon fas fa-thumbs-up/);
+  assert.match(plainVoting, /flatRateDiscussionVote/);
+  assert.match(plainVoting, /sidebarItems/);
+
+  const forumLess = text("resources/less/forum.less");
+  assert.match(forumLess, /@flatrate-vote-zero:\s*#ffffff/);
+  assert.match(forumLess, /@flatrate-vote-has:\s*#84cc16/);
+  assert.match(forumLess, /@flatrate-vote-mine:\s*#c72d5d/);
+  assert.match(forumLess, /\.FlatRateVotes--hasVotes:not\(\.FlatRateVotes--mine\)/);
+  assert.match(
+    forumLess,
+    /\.CommentPost-votes\.FlatRateVotes--zero\.FlatRateVotes--reply[\s\S]*?\.Post-voteCount[\s\S]*?display:\s*none\s*!important/,
+  );
+  assert.match(
+    forumLess,
+    /\.FlatRateVotes--hasVotes:not\(\.FlatRateVotes--mine\)\s*\{[\s\S]*?\.Post-upvote[\s\S]*?@flatrate-vote-zero/,
+  );
+  assert.match(
+    forumLess,
+    /\.FlatRateVotes--hasVotes:not\(\.FlatRateVotes--mine\)\s*\{[\s\S]*?\.Post-points[\s\S]*?@flatrate-vote-has/,
+  );
+  assert.match(forumLess, /display:\s*grid\s*!important/);
+  assert.match(forumLess, /grid-template-rows:\s*minmax\(2rem, auto\)\s+minmax\(2rem, auto\)/);
+  assert.match(forumLess, /li:has\(>\s*\.Post-controls\)/);
+  assert.match(forumLess, /\.item-reply[\s\S]*?grid-row:\s*2/);
+  assert.match(forumLess, /\.item-votes[\s\S]*?grid-row:\s*1[\s\S]*?justify-content:\s*flex-end/);
+  assert.match(forumLess, /\.item-flatRateReplied[\s\S]*?grid-row:\s*1/);
+  assert.match(forumLess, /\.item-flatRateReplied[\s\S]*?\.Post-mentionedBy-summary/);
+  assert.match(plainVoting, /items\.has\('replies'\)/);
+  assert.match(plainVoting, /items\.remove\('replies'\)/);
+  assert.match(plainVoting, /items\.add\('flatRateReplied'/);
+  assert.match(forumLess, /\.Post-points,[\s\S]*?order:\s*1/);
+  assert.match(forumLess, /\.Post-upvote,[\s\S]*?order:\s*2/);
+  assert.match(
+    forumLess,
+    /\.Post-actions\s*\{[\s\S]*?\.CommentPost-votes\s*\{[\s\S]*?flex-direction:\s*row/,
+  );
+  assert.match(forumLess, /flex-direction:\s*row/);
+  assert.doesNotMatch(forumLess, /@flatrate-reply-plus/);
+  assert.doesNotMatch(forumLess, /content:\s*'\\f067'/);
+
+  for (const rel of EXPECTED_JS) {
+    assert.ok(existsSync(join(ROOT, rel)), `missing ${rel}`);
+  }
+
+  console.error("NAV_CONTRACT_SOURCE_MARKER=PASS");
+  console.error("DESKTOP_NAV_SOURCE_MARKER=PASS");
+  console.error("MOBILE_NAV_SOURCE_MARKER=PASS");
+  console.error("UPVOTE_ONLY_THUMBS_UP_PRESENTATION=PASS");
+});
+
+test("legacy desktop IndexPage renderer is gated only while dedicated nav is disabled", () => {
+  const extendPhp = text("extend.php");
+  const disabled = parseWhenExtensionDisabled(extendPhp);
+  const desktop = disabled.filter((row) =>
+    row.jsPaths.includes("js/dist/forum-desktop-navigation.js"),
+  );
+  assert.equal(desktop.length, 1);
+  assert.equal(desktop[0].extensionId, "flatrate-forum-navigation");
+  assert.deepEqual(desktop[0].jsPaths, ["js/dist/forum-desktop-navigation.js"]);
+
+  const unconditional = parseFrontendExtenders(withoutWhenExtensionDisabled(extendPhp))
+    .filter((r) => r.frontend === "forum")
+    .flatMap((r) => r.jsPaths);
+  assert.deepEqual(unconditional, EXPECTED_JS);
+  assert.equal(unconditional.includes("js/dist/forum-desktop-navigation.js"), false);
+
+  assert.match(extendPhp, /js\/dist\/forum-navigation\.js/);
+  assert.match(extendPhp, /js\/dist\/mobile-brand-drawer\.js/);
+  assert.match(extendPhp, /js\/dist\/member-display\.js/);
+  assert.match(extendPhp, /js\/dist\/member-dashboard\.js/);
+  assert.match(extendPhp, /js\/dist\/admin-gamification\.js/);
+  assert.doesNotMatch(
+    withoutWhenExtensionDisabled(extendPhp),
+    /js\/dist\/forum-desktop-navigation\.js/,
+  );
+});
